@@ -1,6 +1,8 @@
 # blinstall
 
-A cross platform GUI installer generator written in C++. 
+*This project is in its beginning stages and is not functional.*
+
+A cross platform GUI installer generator written in C++!
 
 ## License
 
