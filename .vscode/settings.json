@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        ".fantomasignore": "ignore",
+        "*.Rmd": "rmd",
+        "*.scala": "scala",
+        "*.txt": "plaintext",
+        "qapplication": "cpp",
+        "qwidget": "cpp"
+    }
+}

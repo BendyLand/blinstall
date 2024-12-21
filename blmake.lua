@@ -6,13 +6,18 @@
 
 Full_build = {
     compiler = "g++",           -- The compiler to be used (e.g., "gcc", "clang")
-    files = {"main.cpp"},              -- A list of source files to compile (e.g., "main.cpp", "utils.cpp")
-    include_dirs = {},       -- Directories for include files 
+    files = {"main.cpp", "gui.cpp"},              -- A list of source files to compile (e.g., "main.cpp", "utils.cpp")
+    include_dirs = {
+        "/Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework",
+        "/Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework/Headers",
+        "/Users/benlandrette/Qt/6.8.1/macos/lib/QtGui.framework/Headers",
+        "/Users/benlandrette/Qt/6.8.1/macos/lib/QtCore.framework/Headers"
+    },       -- Directories for include files 
     preproc_opts = {},       -- Preprocessor options (e.g., macros, include paths)
     linker_opts = {},        -- Paths to check for included dependencies
     dependencies = {},       -- Libraries to link against, e.g. {"lib1", "lib2"}
-    framework_paths = {},    -- Paths to check for required frameworks (MacOS only).
-    frameworks = {},         -- Framework names to include (MacOS only).
+    framework_paths = {"/Users/benlandrette/Qt/6.8.1/macos/lib"}, -- Paths to check for required frameworks (MacOS only).
+    frameworks = {"QtWidgets", "QtGui", "QtCore"}, -- Framework names to include (MacOS only).
     output = "main",             -- Output file name (optional, defaults to a.out)
     optimization = "",       -- Optimization level (e.g., "-O2", "-Os")
     debugging = false,       -- A BOOLEAN value indicating whether to include debug info ("-g")
