@@ -6,6 +6,8 @@
 cd out
 cmake ..
 make
-./main
-make clean
+mv main ..
+../main
+mv ../main .
+make clean 
 cd ..

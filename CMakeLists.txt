@@ -30,6 +30,8 @@ include_directories(
 set(SOURCE_FILES
 	main.cpp
     gui.cpp
+    utils.cpp
+    os.cpp
 )
 
 # Output directories

@@ -1,16 +1,23 @@
-#include <iostream>
+#include "utils.hpp"
 #include "gui.hpp"
+#include "os.hpp"
 
 using std::cout; using std::endl; using std::string;
 
 int main(int argc, char** argv)
 {
-	cout << "Hello blinstall!" << endl;
 	QApplication app(argc, argv);
 	QWidget window;
-	initWindowSettings(window);
+	init_window_settings(window);
 	window.show();
-	return app.exec();
+	int res = app.exec();
 
-	return 0;
+	// To bundle all of the contents from the project structure into a header file:
+	// string name = std::filesystem::current_path().filename().string() + ".zip";
+	// zip_contents(name);
+	// size_t size = 0;
+	// std::vector<hex> contents = read_file_as_hex(name, size);
+	// my_xxd(name);
+
+	return res;
 }

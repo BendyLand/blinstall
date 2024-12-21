@@ -1,0 +1,326 @@
+// gui.cpp
+#include "gui.hpp"
+
+void init_window_settings(QWidget& window)
+{
+    // Basic settings
+    window.resize(525, 575);
+    window.setWindowTitle("Installer");
+    window.setStyleSheet("background-color: lightgrey;");
+
+    // Main layout for the window
+    QVBoxLayout* mainLayout = new QVBoxLayout(&window);
+    // Title label
+    QLabel* titleLabel = new QLabel("Installing: My Application", &window);
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    mainLayout->addWidget(titleLabel);
+
+    // Create stacked widget for pages
+    QStackedWidget* stackedWidget = new QStackedWidget(&window);
+    mainLayout->addWidget(stackedWidget);
+    // Page 1
+    QWidget* page1 = new QWidget(stackedWidget); // Set parent to stackedWidget
+    QVBoxLayout* page1Layout = new QVBoxLayout(page1);
+    page1Layout->addWidget(new QLabel("Welcome to the installer!", page1));
+    QPushButton* nextButton1 = new QPushButton("Next", page1);
+    page1Layout->addWidget(nextButton1);
+    stackedWidget->addWidget(page1);
+    // Page 2
+    QWidget* page2 = new QWidget(stackedWidget); // Set parent to stackedWidget
+    QVBoxLayout* page2Layout = new QVBoxLayout(page2);
+    page2Layout->addWidget(new QLabel("Installation in progress...", page2));
+    QPushButton* nextButton2 = new QPushButton("Next", page2);
+    page2Layout->addWidget(nextButton2);
+    stackedWidget->addWidget(page2);
+    // Page 3
+    QWidget* page3 = new QWidget(stackedWidget); // Set parent to stackedWidget
+    QVBoxLayout* page3Layout = new QVBoxLayout(page3);
+    page3Layout->addWidget(new QLabel("Installation complete!", page3));
+    QPushButton* finishButton = new QPushButton("Finish", page3);
+    page3Layout->addWidget(finishButton);
+    stackedWidget->addWidget(page3);
+
+    // Connect buttons to change pages
+    QObject::connect(nextButton1, &QPushButton::clicked, [=]() {
+        stackedWidget->setCurrentIndex(1); // Go to page 2
+    });
+    QObject::connect(nextButton2, &QPushButton::clicked, [=]() {
+        stackedWidget->setCurrentIndex(2); // Go to page 3
+    });
+    QObject::connect(finishButton, &QPushButton::clicked, &window, &QWidget::close);
+    // Set initial page
+    stackedWidget->setCurrentIndex(0);
+}
+
+// main.cpp
+#include "utils.hpp"
+#include "gui.hpp"
+#include "os.hpp"
+
+using std::cout; using std::endl; using std::string;
+
+int main(int argc, char** argv)
+{
+	QApplication app(argc, argv);
+	QWidget window;
+	init_window_settings(window);
+	window.show();
+	int res = app.exec();
+
+	// To bundle all of the contents from the project structure into a header file:
+	string name = std::filesystem::current_path().filename().string() + ".zip";
+	zip_contents(name);
+	size_t size = 0;
+	std::vector<hex> contents = read_file_as_hex(name, size);
+	my_xxd(name);
+
+	return res;
+}
+
+// os.cpp
+#include "os.hpp"
+
+std::string OS::detect_os()
+{
+    std::string result;
+    #if defined(OS_WINDOWS)
+        result = "Windows";
+    #elif defined(OS_MACOS)
+        result = "MacOS";
+    #elif defined(OS_LINUX)
+        result = "Linux";
+    #elif defined(OS_UNIX)
+        result = "Unix";
+    #elif defined(OS_FREEBSD)
+        result = "FreeBSD";
+    #else
+        result = "Unknown";
+    #endif
+    return result;
+}
+
+#if OS_UNIX_LIKE_DEFINED
+std::pair<int, std::string> OS::run_command_unix(const std::vector<std::string>& args)
+{
+    // Convert std::vector<std::string> to an array of char* required by execvp
+    std::vector<char*> cargs;
+    for (const std::string& arg : args) {
+        cargs.push_back(strdup(arg.c_str()));
+    }
+    cargs.push_back(nullptr);  // execvp expects a null-terminated array
+    int pipefd[2];  // Pipe for capturing output
+    if (pipe(pipefd) == -1) {
+        perror("pipe failed");
+        return {-1, ""};
+    }
+    pid_t pid = fork();  // Fork the current process
+    if (pid == -1) {
+        // Error occurred during fork
+        perror("fork failed");
+        return {-1, ""};
+    }
+    else if (pid == 0) {
+        // Child process: redirect stdout to the pipe
+        close(pipefd[0]);  // Close unused read end
+        dup2(pipefd[1], STDOUT_FILENO);  // Redirect stdout to pipe write end
+        dup2(pipefd[1], STDERR_FILENO);  // Optionally redirect stderr to pipe write end
+        close(pipefd[1]);  // Close original write end after duplication
+        execvp(cargs[0], cargs.data());
+        // execvp only returns if an error occurred
+        perror("execvp failed");
+        exit(EXIT_FAILURE);
+    }
+    else {
+        // Parent process
+        close(pipefd[1]);  // Close unused write end
+        // Read output from the pipe
+        std::string output;
+        char buffer[128];
+        ssize_t bytesRead;
+        while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+            buffer[bytesRead] = '\0';
+            output += buffer;
+        }
+        close(pipefd[0]);  // Close read end when done
+        // Wait for the child process to finish
+        int status;
+        waitpid(pid, &status, 0);  // Wait for the child process to terminate
+        // Free allocated memory for cargs
+        for (char* carg : cargs) {
+            free(carg);
+        }
+        // Return child's exit status and captured output
+        if (WIFEXITED(status)) {
+            return {WEXITSTATUS(status), output};  // Return exit code and output
+        }
+        else {
+            return {-1, output};  // Child did not exit normally, return -1 with captured output
+        }
+    }
+}
+#elif OS_WINDOWS_DEFINED || !OS_UNIX_LIKE_DEFINED
+std::pair<int, std::string> OS::run_command_windows(const std::string& command)
+{
+    PROCESS_INFORMATION processInfo = {};
+    STARTUPINFO startupInfo = { sizeof(STARTUPINFO) };
+    SECURITY_ATTRIBUTES securityAttrs = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+    HANDLE hRead = NULL, hWrite = NULL;
+
+    // Create pipe for capturing output
+    if (!CreatePipe(&hRead, &hWrite, &securityAttrs, 0)) {
+        return {-1, "Failed to create pipe"};
+    }
+
+    startupInfo.hStdOutput = hWrite;
+    startupInfo.hStdError = hWrite;
+    startupInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+    // Use cmd.exe to execute the command
+    std::string fullCommand = "cmd.exe /C " + command;
+
+    // Create a modifiable command string
+    char commandBuffer[2048];
+    strncpy(commandBuffer, fullCommand.c_str(), sizeof(commandBuffer) - 1);
+    commandBuffer[sizeof(commandBuffer) - 1] = '\0';
+
+    // Execute command
+    if (!CreateProcess(
+            NULL,               // Application name
+            commandBuffer,      // Command line
+            NULL,               // Process security attributes
+            NULL,               // Thread security attributes
+            TRUE,               // Inherit handles
+            0,                  // Creation flags
+            NULL,               // Environment
+            NULL,               // Current directory
+            &startupInfo,       // Startup info
+            &processInfo))      // Process info
+    {
+        CloseHandle(hRead);
+        CloseHandle(hWrite);
+        DWORD error = GetLastError();
+        return {-1, "Failed to create process. Error code: " + std::to_string(error)};
+    }
+
+    // Close the write end of the pipe in the parent process
+    CloseHandle(hWrite);
+
+    // Wait for the process to complete and read the output
+    WaitForSingleObject(processInfo.hProcess, INFINITE);
+
+    char buffer[128];
+    std::string output;
+    DWORD bytesRead;
+    while (ReadFile(hRead, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0) {
+        buffer[bytesRead] = '\0'; // Null-terminate
+        output += buffer;
+    }
+    CloseHandle(hRead);
+
+    // Get the exit code of the process
+    DWORD exitCode = 0;
+    if (!GetExitCodeProcess(processInfo.hProcess, &exitCode)) {
+        exitCode = -1; // Error retrieving exit code
+    }
+
+    // Clean up handles
+    CloseHandle(processInfo.hProcess);
+    CloseHandle(processInfo.hThread);
+
+    return {static_cast<int>(exitCode), output};
+}
+#endif
+
+std::pair<int, std::string> OS::run_command(std::string& arg)
+{
+    std::pair<int, std::string> result;
+    std::vector<std::string> args = split(arg, ' ');
+    #if defined(OS_UNIX_LIKE)
+        result = OS::run_command_unix(args);
+    #else
+        result = OS::run_command_windows(arg);
+    #endif
+    return result;
+}
+
+std::vector<std::string> split(std::string str, char delim)
+{
+    std::vector<std::string> result;
+    std::string temp = "";
+    for (char c : str) {
+        if (c == delim) {
+            result.emplace_back(temp);
+            temp = "";
+            continue;
+        }
+        temp += c;
+    }
+    if (temp.size() > 0) result.emplace_back(temp);
+    return result;
+}
+
+// utils.cpp
+#include "utils.hpp"
+
+void my_xxd(const std::string& filename)
+{
+    size_t size = 0;
+    std::vector<hex> contents = read_file_as_hex(filename, size);
+    std::string text = "";
+    for (size_t i = 0; i < size; i++) text += contents[i];
+    std::string base = filename.substr(0, filename.find_last_of("."));
+    std::string cmd = "./my_xxd -i " + filename;  
+    std::pair<int, std::string> res = OS::run_command(cmd);
+    write_file_from_string(base + ".h", res.second);
+}
+
+void zip_contents(const std::string& output_name)
+{
+	std::string cmd = "zip -r " + output_name + " .";
+	OS::run_command(cmd);
+}
+
+std::vector<hex> char_array_to_hex_vec(unsigned char contents[], unsigned int& file_size)
+{
+    std::vector<hex> result;
+    for (unsigned int i = 0; i < file_size; i++) {
+        result.emplace_back(contents[i]);
+    }
+    return result;
+}
+
+std::vector<hex> read_file_as_hex(const std::string& file_path, size_t& file_size)
+{
+    std::ifstream file(file_path, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file: " << file_path << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::vector<hex> buffer(file_size);
+    file.read(reinterpret_cast<char*>(buffer.data()), file_size);
+    return buffer;
+}
+
+void write_file_from_string(const std::string& file_path, const std::string& str)
+{
+    std::ofstream file(file_path);
+    if (!file) {
+        std::cerr << "Error opening file for writing: " << file_path << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    file.write(str.c_str(), str.size());
+}
+
+void write_file_from_hex(const std::string& file_path, const std::vector<hex>& data)
+{
+    std::ofstream file(file_path, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for writing: " << file_path << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    file.write(reinterpret_cast<const char*>(data.data()), data.size());
+}

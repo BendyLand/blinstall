@@ -5,9 +5,9 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QProgressBar>
+#include <QPushButton>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QWidget>
 
-QGroupBox* createSection(const QString& title);
-QGridLayout* initLayout(QWidget& window);
-void initWindowSettings(QWidget& window);
+void init_window_settings(QWidget& window);

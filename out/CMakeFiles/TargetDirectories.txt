@@ -1,3 +1,0 @@
-/Users/benlandrette/ccode/serious-projects/bendyland/blinstall/out/CMakeFiles/main.dir
-/Users/benlandrette/ccode/serious-projects/bendyland/blinstall/out/CMakeFiles/edit_cache.dir
-/Users/benlandrette/ccode/serious-projects/bendyland/blinstall/out/CMakeFiles/rebuild_cache.dir
