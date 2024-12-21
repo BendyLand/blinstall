@@ -4,7 +4,7 @@
 # compile CXX with g++
 CXX_DEFINES = -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB
 
-CXX_INCLUDES = -F/Users/benlandrette/ccode/serious-projects/bendyland/blinstall/Users/benlandrette/Qt/6.8.1/macos/lib -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework/Headers -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtGui.framework/Headers -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtCore.framework/Headers -iframework /Users/benlandrette/Qt/6.8.1/macos/lib -isystem /Users/benlandrette/Qt/6.8.1/macos/mkspecs/macx-clang -isystem /Users/benlandrette/Qt/6.8.1/macos/include
+CXX_INCLUDES = -iframework /Users/benlandrette/Qt/6.8.1/macos/lib -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework/Headers -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtGui.framework/Headers -isystem /Users/benlandrette/Qt/6.8.1/macos/lib/QtCore.framework/Headers -isystem /Users/benlandrette/Qt/6.8.1/macos/mkspecs/macx-clang -isystem /Users/benlandrette/Qt/6.8.1/macos/include
 
 CXX_FLAGSarm64 = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk -g
 

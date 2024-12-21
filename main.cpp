@@ -9,7 +9,6 @@ int main(int argc, char** argv)
 	QApplication app(argc, argv);
 	QWidget window;
 	initWindowSettings(window);
-	QGridLayout* layout = initLayout(window);
 	window.show();
 	return app.exec();
 

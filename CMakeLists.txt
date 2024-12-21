@@ -20,7 +20,7 @@ set(CMAKE_CXX_COMPILER "g++")
 
 # Include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework 
+    /Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework 
     /Users/benlandrette/Qt/6.8.1/macos/lib/QtWidgets.framework/Headers 
     /Users/benlandrette/Qt/6.8.1/macos/lib/QtGui.framework/Headers 
     /Users/benlandrette/Qt/6.8.1/macos/lib/QtCore.framework/Headers
